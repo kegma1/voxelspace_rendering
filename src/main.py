@@ -103,12 +103,14 @@ def main():
                     debug_rendering = not debug_rendering
                 
         keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT]: player.phi += 0.1
-        if keys[pygame.K_RIGHT]: player.phi -= 0.1
-        if keys[pygame.K_UP]: player.horizon += 10
-        if keys[pygame.K_DOWN]: player.horizon -= 10
+        if keys[pygame.K_a]: player.phi += 0.1
+        if keys[pygame.K_d]: player.phi -= 0.1
+        if keys[pygame.K_q]: player.horizon += 10
+        if keys[pygame.K_e]: player.horizon -= 10
         if keys[pygame.K_w]: player.move(10)
         if keys[pygame.K_s]: player.move(-10)
+        if keys[pygame.K_LSHIFT]: player.pos.z -= 5
+        if keys[pygame.K_SPACE]: player.pos.z += 5
         
         screen.fill((0, 0, 0))
         render(screen, player, 300, 200, color_map, height_map, debug_rendering)
