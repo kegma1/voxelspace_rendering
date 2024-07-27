@@ -3,3 +3,7 @@ lib/
 Scripts/
 pyvenv.cfg
 __pycache__
+
+# Added by cargo
+
+/target
