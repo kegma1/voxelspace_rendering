@@ -1,7 +1,7 @@
 use macroquad::prelude::*;
 
-const SCREEN_WIDTH: u16 = 800;
-const SCREEN_HEIGHT: u16 = 600;
+const SCREEN_WIDTH: u16 = 1920;
+const SCREEN_HEIGHT: u16 = 1080;
 
 struct Player {
     pos: Vec3,
@@ -27,30 +27,57 @@ impl Player {
     }
 }
 
-#[macroquad::main("test")]
-async fn main() {
-    let Ok(color_map) = Image::from_file_with_format(
-        include_bytes!("../assets/testMap/C1W.png"), 
-        Some(ImageFormat::Png)) else {
-            eprintln!("ERROR: Cant find color map");
-            std::process::exit(1);
-        };
-    
-    let Ok(height_map) = Image::from_file_with_format(
-        include_bytes!("../assets/testMap/D1.png"), 
-        Some(ImageFormat::Png)) else {
-            eprintln!("ERROR: Cant find height map");
-            std::process::exit(1);
-        };
+struct Enviorment {
+    color_map: Image, 
+    height_map: Image,
+    fog_color: Color,
+    sky_color: Color,
+    horizon_color: Color
+}
 
-    let mut screen = Image::gen_image_color(SCREEN_WIDTH, SCREEN_HEIGHT, BLUE);
+impl Enviorment {
+    async fn new(color_path: &str, height_path: &str, fog_color: Color, sky_color: Color, horizon_color: Color) -> Result<Self, macroquad::Error> {
+        let color_map = load_image(color_path).await?;
+        let height_map = load_image(height_path).await?;
+        
+        Ok(Enviorment { color_map, height_map, fog_color, sky_color, horizon_color })
+        
+    }
+}
+
+fn window_conf() -> Conf {
+    Conf {
+        window_title: "test".to_owned(),
+        window_width: SCREEN_WIDTH as i32,
+        window_height: SCREEN_HEIGHT as i32,
+        window_resizable: false,
+        ..Default::default()
+    }
+}
+
+#[macroquad::main(window_conf)]
+async fn main() {
+    let env = 
+        match Enviorment::new(
+            "./assets/testMap/C1W.png",
+            "./assets/testMap/D1.png",
+            Color::from_rgba(50, 50, 127, 255), 
+            BLUE, 
+            GREEN
+        ).await {
+            Ok(env) => env,
+            Err(err) => {
+                eprintln!("{}", err);
+                std::process::exit(1);
+            }
+        };
 
     let mut p = Player::new();
 
     loop {
-        clear_background(BLUE);
+        clear_background(env.sky_color);
 
-        render(&mut screen, &mut p, 300.0, 500.0, &color_map, &height_map).await;
+        render(&mut p, 300.0, 500.0, &env);
 
         draw_text(&format!("{} FPS", get_fps()), 10.0, 20.0, 30.0, BLACK);
         
@@ -74,13 +101,11 @@ async fn main() {
     }
 }
 
-async fn render(
-    _screen: &mut Image, 
+fn render(
     p: &mut Player, 
     scale_height: f64, 
     distance: f64, 
-    color_map: &Image, 
-    height_map: &Image, 
+    env: &Enviorment, 
 ) {
     let sinphi = p.phi.sin();
     let cosphi = p.phi.cos();
@@ -104,12 +129,16 @@ async fn render(
             let wrapped_x = p_left_x.abs() as u32 % 1024;
             let wrapped_y = p_left_y.abs() as u32 % 1024;
 
-            let height_value = height_map.get_pixel(wrapped_x, wrapped_y).b * 255.0;
+            let height_value = env.height_map.get_pixel(wrapped_x, wrapped_y).b * 255.0;
 
             let height_on_screen: f64 = (p.pos.z - height_value) as f64 / z * scale_height + p.horizon;
 
             if height_on_screen < ybuffer[i as usize] {
-                let color = color_map.get_pixel(wrapped_x, wrapped_y);
+                let source_color = env.color_map.get_pixel(wrapped_x, wrapped_y);
+
+                let t = (z / distance) as f32;
+                
+                let color: Color = lerp_color(source_color, env.fog_color, t); 
                 draw_line(
                     i.into(), height_on_screen as f32, 
                     i.into(), ybuffer[i as usize] as f32, 
@@ -127,6 +156,15 @@ async fn render(
         z += dz;
         dz += 0.02;
        
+    }
+}
+
+fn lerp_color(color1: Color, color2: Color, t: f32) -> Color {
+    Color {
+        r: color1.r + t * (color2.r - color1.r),
+        g: color1.g + t * (color2.g - color1.g),
+        b: color1.b + t * (color2.b - color1.b),
+        a: color1.a + t * (color2.a - color1.a),
     }
 }
 
