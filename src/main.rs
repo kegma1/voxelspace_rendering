@@ -108,6 +108,7 @@ async fn main() {
                 _ => (),
             }
         }
+
         next_frame().await;
     }
 }
