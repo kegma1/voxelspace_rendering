@@ -6,7 +6,7 @@ const SCREEN_HEIGHT: u16 = 1080;
 struct Player {
     pos: Vec3,
     phi: f64,
-    horizon: f64
+    horizon: f64,
 }
 
 impl Player {
@@ -19,29 +19,40 @@ impl Player {
     }
 
     fn move_in_dir(&mut self, distance: f32) {
-        let delta_x: f32 = distance * self.phi.sin() as f32; 
-        let delta_y: f32 = distance * self.phi.cos() as f32; 
-        
+        let delta_x: f32 = distance * self.phi.sin() as f32;
+        let delta_y: f32 = distance * self.phi.cos() as f32;
+
         self.pos.x += delta_x;
         self.pos.y += delta_y;
     }
 }
 
 struct Enviorment {
-    color_map: Image, 
+    color_map: Image,
     height_map: Image,
     fog_color: Color,
     sky_color: Color,
-    horizon_color: Color
+    horizon_color: Color,
 }
 
 impl Enviorment {
-    async fn new(color_path: &str, height_path: &str, fog_color: Color, sky_color: Color, horizon_color: Color) -> Result<Self, macroquad::Error> {
+    async fn new(
+        color_path: &str,
+        height_path: &str,
+        fog_color: Color,
+        sky_color: Color,
+        horizon_color: Color,
+    ) -> Result<Self, macroquad::Error> {
         let color_map = load_image(color_path).await?;
         let height_map = load_image(height_path).await?;
-        
-        Ok(Enviorment { color_map, height_map, fog_color, sky_color, horizon_color })
-        
+
+        Ok(Enviorment {
+            color_map,
+            height_map,
+            fog_color,
+            sky_color,
+            horizon_color,
+        })
     }
 }
 
@@ -57,20 +68,21 @@ fn window_conf() -> Conf {
 
 #[macroquad::main(window_conf)]
 async fn main() {
-    let env = 
-        match Enviorment::new(
-            "./assets/testMap/C1W.png",
-            "./assets/testMap/D1.png",
-            Color::from_rgba(50, 50, 127, 255), 
-            BLUE, 
-            GREEN
-        ).await {
-            Ok(env) => env,
-            Err(err) => {
-                eprintln!("{}", err);
-                std::process::exit(1);
-            }
-        };
+    let env = match Enviorment::new(
+        "./assets/testMap/C1W.png",
+        "./assets/testMap/D1.png",
+        Color::from_rgba(50, 50, 127, 255),
+        BLUE,
+        GREEN,
+    )
+    .await
+    {
+        Ok(env) => env,
+        Err(err) => {
+            eprintln!("{}", err);
+            std::process::exit(1);
+        }
+    };
 
     let mut p = Player::new();
 
@@ -78,9 +90,8 @@ async fn main() {
         clear_background(env.sky_color);
 
         render(&mut p, 300.0, 500.0, &env);
-
         draw_text(&format!("{} FPS", get_fps()), 10.0, 20.0, 30.0, BLACK);
-        
+
         for v in get_keys_down() {
             match v {
                 KeyCode::A => p.phi += 0.1,
@@ -94,19 +105,14 @@ async fn main() {
 
                 KeyCode::Space => p.pos.z += 5.0,
                 KeyCode::LeftShift => p.pos.z -= 5.0,
-                _ => ()
+                _ => (),
             }
         }
         next_frame().await;
     }
 }
 
-fn render(
-    p: &mut Player, 
-    scale_height: f64, 
-    distance: f64, 
-    env: &Enviorment, 
-) {
+fn render(p: &mut Player, scale_height: f64, distance: f64, env: &Enviorment) {
     let sinphi = p.phi.sin();
     let cosphi = p.phi.cos();
 
@@ -116,11 +122,11 @@ fn render(
     let mut z = 1.0;
 
     while z < distance {
-        let mut p_left_x = (-cosphi*z - sinphi*z) + p.pos.x as f64;
-        let mut p_left_y = ( sinphi*z - cosphi*z) + p.pos.y as f64;
+        let mut p_left_x = (-cosphi * z - sinphi * z) + p.pos.x as f64;
+        let mut p_left_y = (sinphi * z - cosphi * z) + p.pos.y as f64;
 
-        let p_right_x = ( cosphi*z - sinphi*z) + p.pos.x as f64;
-        let p_right_y = (-sinphi*z - cosphi*z) + p.pos.y as f64;
+        let p_right_x = (cosphi * z - sinphi * z) + p.pos.x as f64;
+        let p_right_y = (-sinphi * z - cosphi * z) + p.pos.y as f64;
 
         let dx = (p_right_x - p_left_x) / SCREEN_WIDTH as f64;
         let dy = (p_right_y - p_left_y) / SCREEN_WIDTH as f64;
@@ -131,31 +137,32 @@ fn render(
 
             let height_value = env.height_map.get_pixel(wrapped_x, wrapped_y).b * 255.0;
 
-            let height_on_screen: f64 = (p.pos.z - height_value) as f64 / z * scale_height + p.horizon;
+            let height_on_screen: f64 =
+                (p.pos.z - height_value) as f64 / z * scale_height + p.horizon;
 
             if height_on_screen < ybuffer[i as usize] {
                 let source_color = env.color_map.get_pixel(wrapped_x, wrapped_y);
 
                 let t = (z / distance) as f32;
-                
-                let color: Color = lerp_color(source_color, env.fog_color, t); 
+
+                let color: Color = lerp_color(source_color, env.fog_color, t);
                 draw_line(
-                    i.into(), height_on_screen as f32, 
-                    i.into(), ybuffer[i as usize] as f32, 
+                    i.into(),
+                    height_on_screen as f32,
+                    i.into(),
+                    ybuffer[i as usize] as f32,
                     1.0,
-                    color
+                    color,
                 );
                 ybuffer[i as usize] = height_on_screen;
             }
-            
+
             p_left_x += dx;
             p_left_y += dy;
-            
         }
 
         z += dz;
         dz += 0.02;
-       
     }
 }
 
@@ -167,4 +174,3 @@ fn lerp_color(color1: Color, color2: Color, t: f32) -> Color {
         a: color1.a + t * (color2.a - color1.a),
     }
 }
-

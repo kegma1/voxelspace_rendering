@@ -3,7 +3,7 @@ lib/
 Scripts/
 pyvenv.cfg
 __pycache__
-
+.venv/
 # Added by cargo
 
 /target
