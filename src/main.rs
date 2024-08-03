@@ -27,6 +27,20 @@ impl Player {
     }
 }
 
+struct Entity {
+    pos: Vec3,
+    sprite: Image,
+    size: f64,
+}
+
+impl Entity {
+    async fn new(sprite_path: &str, pos: Vec3, size: f64) -> Result<Self, macroquad::Error> {
+        let sprite = load_image(sprite_path).await?;
+
+        Ok(Entity { pos, sprite, size })
+    }
+}
+
 struct Enviorment {
     color_map: Image,
     height_map: Image,
@@ -86,10 +100,25 @@ async fn main() {
 
     let mut p = Player::new();
 
+    let test_sprite: Entity = match Entity::new(
+        "/home/kennet/programering/voxelspace_rendering/assets/sprites/coin.png",
+        Vec3::new(0.0, 0.0, 0.0),
+        20.0,
+    )
+    .await
+    {
+        Ok(e) => e,
+        Err(err) => {
+            eprintln!("{}", err);
+            std::process::exit(1);
+        }
+    };
+
     loop {
         clear_background(env.sky_color);
 
         render(&mut p, 300.0, 500.0, &env);
+
         draw_text(&format!("{} FPS", get_fps()), 10.0, 20.0, 30.0, BLACK);
 
         for v in get_keys_down() {
@@ -165,6 +194,16 @@ fn render(p: &mut Player, scale_height: f64, distance: f64, env: &Enviorment) {
         z += dz;
         dz += 0.02;
     }
+}
+
+fn render_sprites(
+    p: &mut Player,
+    s: &Entity,
+    ybuffer: &mut [f64],
+    scale_height: f64,
+    distance: f64,
+    env: &Enviorment,
+) {
 }
 
 fn lerp_color(color1: Color, color2: Color, t: f32) -> Color {
