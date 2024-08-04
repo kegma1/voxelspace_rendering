@@ -101,7 +101,7 @@ async fn main() {
     let mut p = Player::new();
 
     let test_sprite: Entity = match Entity::new(
-        "/home/kennet/programering/voxelspace_rendering/assets/sprites/coin.png",
+        "./assets/sprites/coin.png",
         Vec3::new(0.0, 0.0, 0.0),
         20.0,
     )
