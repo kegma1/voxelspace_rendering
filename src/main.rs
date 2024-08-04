@@ -120,7 +120,8 @@ async fn main() {
         render(&mut p, 300.0, 500.0, &env);
 
         draw_text(&format!("{} FPS", get_fps()), 10.0, 20.0, 30.0, BLACK);
-
+        draw_text(&format!("xyz: {}, {}, {}", p.pos.x.round(), p.pos.y.round(), p.pos.z.round()), 100.0, 20.0, 30.0, BLACK);
+        
         for v in get_keys_down() {
             match v {
                 KeyCode::A => p.phi += 0.1,
