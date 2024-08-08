@@ -1,7 +1,4 @@
-use std::default;
-
 use macroquad::prelude::*;
-use macroquad::ui::root_ui;
 
 struct Player {
     pos: Vec3,
@@ -90,7 +87,7 @@ fn window_conf() -> Conf {
         window_title: "test".to_owned(),
         window_width: 1920,
         window_height: 1080,
-        // window_resizable: false,
+        window_resizable: false,
         ..Default::default()
     }
 }
@@ -132,12 +129,16 @@ async fn main() {
 
     let entitis = vec![test_sprite];
 
+    
     loop {
+        let mut screen = Image::gen_image_color(screen_width() as u16, screen_height() as u16, env.sky_color);
         let scale_height = (screen_height() / 2.0) as f64;
 
         clear_background(env.sky_color);
 
+
         render(
+            &mut screen,
             &mut p,
             scale_height,
             500.0,
@@ -147,7 +148,9 @@ async fn main() {
             &entitis,
         );
 
-        draw_text(&format!("{} FPS", get_fps()), 10.0, 20.0, 30.0, BLACK);
+        let texture = Texture2D::from_image(&screen);
+        draw_texture(&texture, 0.0, 0.0, WHITE);
+
         draw_text(
             &format!(
                 "xyz: {}, {}, {}",
@@ -155,11 +158,12 @@ async fn main() {
                 p.pos.y.round(),
                 p.pos.z.round()
             ),
-            100.0,
+            10.0,
             20.0,
             30.0,
             BLACK,
         );
+        draw_text(&format!("{} FPS", get_fps()), 10.0, 45.0, 30.0, BLACK);
 
         for v in get_keys_down() {
             match v {
@@ -184,6 +188,7 @@ async fn main() {
 }
 
 fn render(
+    screen: &mut Image,
     p: &mut Player,
     scale_height: f64,
     distance: f64,
@@ -227,17 +232,23 @@ fn render(
 
                 let color: Color = lerp_color(source_color, env.fog_color, t);
 
-                draw_line(
-                    i as f32,
-                    height_on_screen as f32,
-                    i as f32,
-                    depth_buf.ybuffer[i] as f32,
-                    1.0,
-                    color,
-                );
+                for y in height_on_screen as usize.. depth_buf.ybuffer[i] as usize {
+                    screen.set_pixel(i as u32, y as u32, color);
+                    depth_buf.dbuffer[i][y] = z;
 
-                depth_buf.dbuffer[i][(height_on_screen as usize)..(depth_buf.ybuffer[i] as usize)]
-                    .fill(z);
+                }
+
+                // draw_line(
+                //     i as f32,
+                //     height_on_screen as f32,
+                //     i as f32,
+                //     depth_buf.ybuffer[i] as f32,
+                //     1.0,
+                //     color,
+                // );
+
+                // depth_buf.dbuffer[i][(height_on_screen as usize)..(depth_buf.ybuffer[i] as usize)]
+                //     .fill(z);
 
                 depth_buf.ybuffer[i] = height_on_screen;
             }
@@ -252,6 +263,7 @@ fn render(
     //_draw_depth_buffer(&depth_buf, screen_width, screen_height);
 
     render_sprites(
+        screen,
         p,
         entities,
         &mut depth_buf,
@@ -279,6 +291,7 @@ fn _draw_depth_buffer(depth_buf: &DepthBuffer, screen_width: f64, screen_height:
 }
 
 fn render_sprites(
+    screen: &mut Image,
     p: &mut Player,
     entities: &Vec<Entity>,
     depth_buf: &mut DepthBuffer,
@@ -329,7 +342,11 @@ fn render_sprites(
                             let t = (ty / distance) as f32;
 
                             let color: Color = lerp_color(source_color, env.fog_color, t);
-                            draw_rectangle(stripe as f32, y as f32, 1.0, 1.0, color);
+
+                            if color.a != 0.0 {
+                                screen.set_pixel(stripe as u32, y as u32, color);
+                            }
+                            // draw_rectangle(stripe as f32, y as f32, 1.0, 1.0, color);
                         }
                     }
                 }
