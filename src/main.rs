@@ -129,9 +129,11 @@ async fn main() {
 
     let entitis = vec![test_sprite];
 
+    let empty_screen = Image::gen_image_color(screen_width() as u16, screen_height() as u16, env.sky_color);
+    let texture = Texture2D::from_image(&empty_screen);
     
     loop {
-        let mut screen = Image::gen_image_color(screen_width() as u16, screen_height() as u16, env.sky_color);
+        let mut screen = empty_screen.clone();
         let scale_height = (screen_height() / 2.0) as f64;
 
         clear_background(env.sky_color);
@@ -148,7 +150,8 @@ async fn main() {
             &entitis,
         );
 
-        let texture = Texture2D::from_image(&screen);
+        texture.update(&screen);
+
         draw_texture(&texture, 0.0, 0.0, WHITE);
 
         draw_text(
@@ -237,18 +240,6 @@ fn render(
                     depth_buf.dbuffer[i][y] = z;
 
                 }
-
-                // draw_line(
-                //     i as f32,
-                //     height_on_screen as f32,
-                //     i as f32,
-                //     depth_buf.ybuffer[i] as f32,
-                //     1.0,
-                //     color,
-                // );
-
-                // depth_buf.dbuffer[i][(height_on_screen as usize)..(depth_buf.ybuffer[i] as usize)]
-                //     .fill(z);
 
                 depth_buf.ybuffer[i] = height_on_screen;
             }
