@@ -136,9 +136,6 @@ async fn main() {
         let mut screen = empty_screen.clone();
         let scale_height = (screen_height() / 2.0) as f64;
 
-        clear_background(env.sky_color);
-
-
         render(
             &mut screen,
             &mut p,
