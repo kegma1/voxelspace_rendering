@@ -1,7 +1,7 @@
 use std::default;
 
-use macroquad::ui::root_ui;
 use macroquad::prelude::*;
+use macroquad::ui::root_ui;
 
 struct Player {
     pos: Vec3,
@@ -195,7 +195,8 @@ fn render(
     let sinphi = p.phi.sin();
     let cosphi = p.phi.cos();
 
-    let mut depth_buf = DepthBuffer::new(screen_height, screen_width as usize, screen_height as usize);
+    let mut depth_buf =
+        DepthBuffer::new(screen_height, screen_width as usize, screen_height as usize);
 
     let mut dz = 1.0;
     let mut z = 1.0;
@@ -219,7 +220,7 @@ fn render(
             let height_on_screen: f64 =
                 (p.pos.z - height_value) as f64 / z * scale_height + p.horizon;
 
-            if height_on_screen < depth_buf.ybuffer[i as usize] {
+            if height_on_screen < depth_buf.ybuffer[i] {
                 let source_color = env.color_map.get_pixel(wrapped_x, wrapped_y);
 
                 let t = (z / distance) as f32;
@@ -230,16 +231,15 @@ fn render(
                     i as f32,
                     height_on_screen as f32,
                     i as f32,
-                    depth_buf.ybuffer[i as usize] as f32,
+                    depth_buf.ybuffer[i] as f32,
                     1.0,
                     color,
                 );
-                
-                for ix in height_on_screen as usize..depth_buf.ybuffer[i] as usize {
-                    depth_buf.dbuffer[i][ix] = z;
-                }
 
-                depth_buf.ybuffer[i as usize] = height_on_screen;
+                depth_buf.dbuffer[i][(height_on_screen as usize)..(depth_buf.ybuffer[i] as usize)]
+                    .fill(z);
+
+                depth_buf.ybuffer[i] = height_on_screen;
             }
 
             p_left_x += dx;
@@ -249,19 +249,7 @@ fn render(
         z += dz;
         dz += 0.02;
     }
-
-    // let mut temp = Image::gen_image_color(screen_width as u16, screen_height as u16, WHITE);
-    
-    // for x in 0..depth_buf.dbuffer.len() {
-    //     for y in 0..depth_buf.dbuffer[x].len() {
-    //         let c = depth_buf.dbuffer[x][y] as u8;
-    //         if depth_buf.dbuffer[x][y] != f64::INFINITY {
-    //             temp.set_pixel(x as u32, y as u32, Color::from_rgba(c, c, c, 255))
-    //         }
-    //     }
-    // }
-    // let text = Texture2D::from_image(&temp);
-    // draw_texture(&text, 0.0, 0.0, WHITE);
+    //_draw_depth_buffer(&depth_buf, screen_width, screen_height);
 
     render_sprites(
         p,
@@ -273,6 +261,21 @@ fn render(
         screen_width,
         screen_height,
     );
+}
+
+fn _draw_depth_buffer(depth_buf: &DepthBuffer, screen_width: f64, screen_height: f64) {
+    let mut temp = Image::gen_image_color(screen_width as u16, screen_height as u16, WHITE);
+
+    for x in 0..depth_buf.dbuffer.len() {
+        for y in 0..depth_buf.dbuffer[x].len() {
+            let c = depth_buf.dbuffer[x][y] as u8;
+            if depth_buf.dbuffer[x][y] != f64::INFINITY {
+                temp.set_pixel(x as u32, y as u32, Color::from_rgba(c, c, c, 255))
+            }
+        }
+    }
+    let text = Texture2D::from_image(&temp);
+    draw_texture(&text, 0.0, 0.0, WHITE);
 }
 
 fn render_sprites(
